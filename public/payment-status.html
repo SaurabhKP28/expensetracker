@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Status - Expense Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+</head>
+<body>
+  <div class="auth-container">
+    <h2>Payment Status</h2>
+    <div id="payment-status" class="text-center" style="margin: 20px 0;">
+      Checking payment status...
+    </div>
+    <div class="text-center">
+      <button id="return-btn" class="btn" onclick="window.location.href='/expense.html'" style="display: none;">Return to Dashboard</button>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id');
+      const statusElement = document.getElementById('payment-status');
+      const returnBtn = document.getElementById('return-btn');
+      
+      if (!orderId) {
+        statusElement.innerText = 'No order ID provided.';
+        returnBtn.style.display = 'inline-block';
+        return;
+      }
+      
+      checkPaymentStatus(orderId);
+      
+      async function checkPaymentStatus(orderId) {
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            window.location.href = '/login.html';
+            return;
+          }
+          
+          const response = await fetch(`/api/payments/payment-status/${orderId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch payment status');
+          }
+          
+          const data = await response.json();
+          const status = data.orderStatus.toLowerCase();
+          
+          if (status === 'paid' || status === 'success' || status === 'successful') {
+            statusElement.innerText = 'Payment Successful! You are now a premium user.';
+            statusElement.className = 'success-message';
+            returnBtn.textContent = 'Go to Premium Dashboard';
+            returnBtn.onclick = function() {
+              window.location.href = '/expenses.html';
+            };
+            returnBtn.style.display = 'inline-block';
+          } else if (status === 'pending') {
+            statusElement.innerText = 'Payment is still processing...';
+            // Check again after 3 seconds
+            setTimeout(() => {
+              checkPaymentStatus(orderId);
+            }, 3000);
+          } else {
+            statusElement.innerText = 'Payment failed or order not found.';
+            statusElement.className = 'error-message';
+            returnBtn.style.display = 'inline-block';
+          }
+        } catch (error) {
+          console.error('Error checking payment status:', error);
+          statusElement.innerText = 'Error checking payment status.';
+          statusElement.className = 'error-message';
+          returnBtn.style.display = 'inline-block';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

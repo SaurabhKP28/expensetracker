@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Expense Tracker</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-container">
+      <div class="logo">ExpenseTracker</div>
+      <div class="user-actions">
+        <div class="premium-badge">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2z"></path>
+          </svg>
+          Premium
+        </div>
+        <div class="user-profile">
+          <span id="user-name">Loading...</span>
+          <span id="user-email"></span>
+        </div>
+        <button onclick="logout()" class="btn-outline">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="header">
+      <h1>Premium Expense Tracker</h1>
+      <div>
+        <button id="leaderboard-btn" class="btn-outline">Show Leaderboard</button>
+      </div>
+    </div>
+    
+    <div class="expense-container">
+      <div class="expense-form-card">
+        <h2>Add New Expense</h2>
+        <form id="expense-form">
+          <div class="form-group">
+            <label for="amount">Amount ($):</label>
+            <input type="number" id="amount" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="category">Category:</label>
+            <select id="category" required>
+              <option value="">Select a category</option>
+              <option value="Food">Food</option>
+              <option value="Transportation">Transportation</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Shopping">Shopping</option>
+              <option value="Utilities">Utilities</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="description">Description:</label>
+            <input type="text" id="description" required>
+          </div>
+          <div class="form-group">
+            <label for="frequency">Expense Frequency:</label>
+            <select id="frequency" required>
+              <option value="">Select frequency</option>
+              <option value="daily">Daily</option>
+              <option value="weekly" selected>Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Add Expense</button>
+        </form>
+      </div>
+      
+      <div class="expense-list">
+        <div class="expense-header">
+          <h2>Your Expenses</h2>
+          <div class="list-controls">
+            <div class="items-per-page">
+              <label for="items-per-page">Show:</label>
+              <select id="items-per-page">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div id="expenses-container">
+          <!-- Expenses will be loaded here -->
+          <div class="text-center">Loading expenses...</div>
+        </div>
+        
+        <!-- Enhanced Pagination -->
+        <div class="pagination">
+          <button id="first-page-btn" class="page-button" title="First Page">«</button>
+          <button id="prev-page-btn" class="page-button" title="Previous Page">‹</button>
+          <div id="page-numbers" class="page-numbers"></div>
+          <button id="next-page-btn" class="page-button" title="Next Page">›</button>
+          <button id="last-page-btn" class="page-button" title="Last Page">»</button>
+          <div class="page-info">
+            Page <span id="current-page">1</span> of <span id="total-pages">1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Leaderboard Section -->
+    <div class="leaderboard" id="leaderboard" style="display: none;">
+      <h2>Expense Leaderboard</h2>
+      <div id="leaderboard-container">
+        <!-- Leaderboard data will be loaded here -->
+      </div>
+    </div>
+    
+    <!-- Reports Section -->
+    <div class="report-section">
+      <div class="report-header">
+        <h2>Expense Reports</h2>
+        <div class="report-actions">
+          <select id="report-type">
+            <option value="daily">Daily</option>
+            <option value="weekly" selected>Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+          <button id="view-report-btn" class="btn">View Report</button>
+          <button id="download-report-btn" class="btn-outline">Download CSV</button><p id="download-error" class="error-message" style="color: red; margin-top: 0.5rem;"></p>
+        </div>
+        <!-- Downloaded file link will be shown here -->
+        <div id="downloaded-file-link" style="margin-top: 0.5rem;"></div>
+      </div>
+      
+      <div id="report-container">
+        <!-- Report data will be loaded here -->
+        <p class="text-center">Select a report type and click "View Report" to generate a report.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 ExpenseTracker. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/pagination.js"></script>
+  <script src="js/expenses.js"></script>
+  <script src="js/main.js"></script>
+ <script>
+  document.getElementById('download-report-btn').addEventListener('click', async () => {
+    const errorElement = document.getElementById('download-error');
+    errorElement.textContent = ''; // Clear previous errors
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      errorElement.textContent = 'You are not logged in. Please login to download your data.';
+      return;
+    }
+
+    try {
+      const res = await fetch('/s3/download', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        const errorMsg = `Error: Request failed with status ${res.status}`;
+        errorElement.textContent = errorMsg;
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.fileURL) {
+        // Create a temporary anchor to force download
+        const a = document.createElement('a');
+        a.href = data.fileURL;
+        a.download = ''; // Let browser use the filename from S3
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Show the download link below report-header
+        const linkDiv = document.getElementById('downloaded-file-link');
+        linkDiv.innerHTML = `<a href="${data.fileURL}" target="_blank" style="color: #007bff; text-decoration: underline;">Download your CSV file again</a>`;
+      } else {
+        errorElement.textContent = 'Error: No file URL returned';
+      }
+    } catch (err) {
+      console.error('Error downloading CSV:', err);
+      errorElement.textContent = 'Error: Network Error';
+    }
+  });
+</script>
+
+</body>
+</html>
